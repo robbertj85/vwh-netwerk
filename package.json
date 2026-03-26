@@ -1,0 +1,39 @@
+{
+  "name": "vrachtwagenheffing-netwerk",
+  "version": "1.0.0",
+  "description": "Interactieve kaart en tools voor het vrachtwagenheffing tolnetwerk in Nederland",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "process-toll-data": "node scripts/process-toll-network.mjs"
+  },
+  "dependencies": {
+    "@vercel/analytics": "^1.6.1",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "leaflet": "^1.9.4",
+    "lucide-react": "^1.6.0",
+    "next": "^16.0.10",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
+    "react-leaflet": "^5.0.0",
+    "sql.js": "^1.14.1",
+    "tailwind-merge": "^3.5.0"
+  },
+  "devDependencies": {
+    "@types/leaflet": "^1.9.8",
+    "@types/node": "^20.0.0",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "autoprefixer": "^10.4.0",
+    "eslint": "^9.39.1",
+    "eslint-config-next": "^16.0.10",
+    "fast-xml-parser": "^5.5.9",
+    "postcss": "^8.4.0",
+    "tailwindcss": "^3.4.0",
+    "typescript": "^5.0.0"
+  }
+}

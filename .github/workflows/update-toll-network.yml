@@ -1,0 +1,57 @@
+name: Update Toll Network Data
+
+on:
+  schedule:
+    - cron: '0 2 * * 0'  # Every Sunday at 02:00 UTC
+  workflow_dispatch:
+    inputs:
+      data_date:
+        description: 'NDW data date (YYYYMMDD, leave empty for latest 1st of month)'
+        required: false
+
+jobs:
+  update-data:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Determine data date
+        id: date
+        run: |
+          if [ -n "${{ github.event.inputs.data_date }}" ]; then
+            echo "date=${{ github.event.inputs.data_date }}" >> $GITHUB_OUTPUT
+          else
+            echo "date=$(date +%Y%m01)" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Process toll network data
+        run: node scripts/process-toll-network.mjs ${{ steps.date.outputs.date }}
+
+      - name: Check for changes
+        id: changes
+        run: |
+          if git diff --quiet public/data/toll-network.*; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+          else
+            echo "changed=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Commit and push
+        if: steps.changes.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add public/data/toll-network.geojson public/data/toll-network.gpkg
+          git commit -m "chore: update toll network data (${{ steps.date.outputs.date }})"
+          git push
