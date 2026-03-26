@@ -43,7 +43,7 @@ export default function Home() {
 
   useEffect(() => {
     setLoading(true);
-    fetch('/data/toll-network-map.geojson')
+    fetch('/data/toll-network.geojson')
       .then(async (res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.json();

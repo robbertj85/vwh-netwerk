@@ -26,10 +26,7 @@ yarn-error.log*
 # env
 .env*.local
 
-# generated data (regenerate with: npm run process-toll-data)
-public/data/toll-network.geojson
-public/data/toll-network.gpkg
-public/data/toll-network-map.geojson
+
 
 # vercel
 .vercel
