@@ -49,7 +49,7 @@ export default function DataModal({ open, onClose, data }: DataModalProps) {
   return (
     <dialog
       ref={dialogRef}
-      className="backdrop:bg-black/50 bg-white rounded-xl shadow-2xl max-w-md w-[90vw] p-0"
+      className="backdrop:bg-black/50 bg-white rounded-xl shadow-2xl max-w-2xl w-[90vw] p-0"
       onClick={(e) => { if (e.target === dialogRef.current) onClose(); }}
     >
       <div className="p-5">
