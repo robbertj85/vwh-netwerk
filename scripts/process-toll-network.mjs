@@ -18,9 +18,21 @@ import { XMLParser } from 'fast-xml-parser';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = join(__dirname, '../public/data');
-const DATA_DATE = process.argv[2] || '20260301';
+const REQUESTED_DATE = process.argv[2] || '20260301';
 
-const XML_URL = `https://maps.ndw.nu/api/v1/hgvChargeTollCollectionNetwork/${DATA_DATE}/xml/${DATA_DATE}-tollCollectionNetwork.xml.gz`;
+function buildUrl(date) {
+  return `https://maps.ndw.nu/api/v1/hgvChargeTollCollectionNetwork/${date}/xml/${date}-tollCollectionNetwork.xml.gz`;
+}
+
+function previousFirstOfMonth(yyyymmdd) {
+  const year = parseInt(yyyymmdd.slice(0, 4), 10);
+  const month = parseInt(yyyymmdd.slice(4, 6), 10);
+  const d = new Date(Date.UTC(year, month - 1, 1));
+  d.setUTCMonth(d.getUTCMonth() - 1);
+  const y = d.getUTCFullYear();
+  const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+  return `${y}${m}01`;
+}
 
 // ─── Road Type Classification ───────────────────────────────
 
@@ -50,6 +62,26 @@ async function downloadAndDecompress(url) {
   return xml;
 }
 
+async function resolveAvailableDate(startDate, maxMonthsBack = 12) {
+  let date = startDate;
+  for (let i = 0; i <= maxMonthsBack; i++) {
+    const url = buildUrl(date);
+    const head = await fetch(url, { method: 'HEAD' });
+    if (head.ok) {
+      if (date !== startDate) {
+        console.log(`Requested ${startDate} not published; using ${date}`);
+      }
+      return date;
+    }
+    if (head.status !== 404) {
+      throw new Error(`HEAD ${url} → ${head.status} ${head.statusText}`);
+    }
+    console.log(`Not published: ${date} (404), trying previous month...`);
+    date = previousFirstOfMonth(date);
+  }
+  throw new Error(`No published toll network found within ${maxMonthsBack} months before ${startDate}`);
+}
+
 // ─── Parse XML ──────────────────────────────────────────────
 
 function parseXML(xml) {
@@ -76,7 +108,7 @@ function round5(n) {
   return Math.round(n * 1e5) / 1e5;
 }
 
-function convertToGeoJSON(sections) {
+function convertToGeoJSON(sections, dataDate) {
   console.log('Converting to GeoJSON...');
 
   const features = [];
@@ -147,7 +179,7 @@ function convertToGeoJSON(sections) {
     metadata: {
       totalSections: features.length,
       totalDistanceKm,
-      dataDate: DATA_DATE,
+      dataDate,
       uniqueRoads: new Set(features.map((f) => f.properties.roadName)).size,
       source: 'NDW Vrachtwagenheffing Register',
     },
@@ -322,14 +354,17 @@ async function createGeoPackage(features) {
 
 async function main() {
   console.log(`\n=== VWH Toll Network Processor ===`);
-  console.log(`Data date: ${DATA_DATE}\n`);
+  console.log(`Requested date: ${REQUESTED_DATE}`);
 
   mkdirSync(DATA_DIR, { recursive: true });
 
+  const dataDate = await resolveAvailableDate(REQUESTED_DATE);
+  console.log(`Active data date: ${dataDate}\n`);
+
   // Download and parse
-  const xml = await downloadAndDecompress(XML_URL);
+  const xml = await downloadAndDecompress(buildUrl(dataDate));
   const sections = parseXML(xml);
-  const geojson = convertToGeoJSON(sections);
+  const geojson = convertToGeoJSON(sections, dataDate);
 
   // Save full GeoJSON (for downloads/API)
   const geojsonPath = join(DATA_DIR, 'toll-network.geojson');
